@@ -1,0 +1,101 @@
+#
+# Author: Gavin Grosswald
+# Purpose: HW 2
+#
+
+# Read data and replace NA with blanks
+story <- read.csv("C:\\Users\\gsgro\\OneDrive\\Desktop\\Syr_MSBA\\Term 3\\Machine Learning\\Week 2\\HW 2\\data-storyteller.csv", na = c(""))
+
+# View dataset
+summary(story)
+str(story)
+
+# Converting School column to factor
+story$School <- factor(story$School)
+
+# Converting Section column factor
+story$Section <- factor(story$Section)
+
+# Reorder columns
+story1 <- story[,c(2,1,8,3,4,5,6,7)]
+
+# Change column names
+colnames(story1) <- c("Class.Section", "School.Name", "Complete", "Very.Ahead", "Middle", "Behind", "More.Behind", "Very.Behind")
+
+# Remove Very Ahead column
+story1 <- story1[, -4]
+
+#Add total students columns
+story1$Total.Students <- rowSums(story1[, 3:7], na.rm = TRUE)
+
+# Number of sections per school
+SchoolValues<-c(length(which(story1$School.Name=='A')), length(which(story1$School.Name=='B')), length(which(story1$School.Name=='C')), length(which(story1$School.Name=='D')), length(which(story1$School.Name=='E')))
+barplot(SchoolValues, names.arg = c("A", "B", "C", "D", "E")
+        , main = "Number of Sections per School"
+        , xlab = "School"
+        , ylab = "Sections"
+        , col = c("skyblue", "lightyellow", "lightgreen", "lightpink", "brown"))
+
+# Number of students per school
+StudentValues <- aggregate(Total.Students ~ School.Name, data = story1, FUN = sum)
+barplot(StudentValues$Total.Students, names.arg = StudentValues$School
+        , main = "Number of Students per School"
+        , xlab = "School"
+        , ylab = "Students"
+        , col = c("skyblue", "lightyellow", "lightgreen", "lightpink", "brown"))
+
+
+# Number of Students per Bucket per Section
+par(mfrow = c(3,2))
+barplot(story1$Complete, main='Number of Students Completed per Section', names.arg = c(1:30), col = "pink")
+barplot(story1$Middle, main='Number of Students Middling per Section', names.arg = c(1:30), col = "blue")
+barplot(story1$Behind, main='Number of Students Behind per Section', names.arg = c(1:30), col = "tan")
+barplot(story1$More.Behind, main='Number of Students More Behind per Section', names.arg = c(1:30), col = "red")
+barplot(story1$Very.Behind, main='Number of Students Very Behind per Section', names.arg = c(1:30), col = "green")
+
+# Summing rows and columns
+StudentSums <- colSums(story1[,3:7])
+sum(StudentSums)
+barplot(StudentSums, main = "Student Totals Across All Buckets")
+
+SectionSums <- rowSums(story1[,3:7])
+sum(SectionSums)
+
+# Percent per Bucket
+StudentSums/sum(StudentSums)
+pie(StudentSums/sum(StudentSums)
+    , labels = paste(c("Complete", "Middle", "Behind", "More Behind", "Very Behind"), "(", round(StudentSums/sum(StudentSums)*100), "%)")
+    , main = "Percent of Students per Bucket")
+
+# Breaking out the data by school
+story1A<-story1[which(story1$School.Name == "A"),]
+story1B<-story1[which(story1$School.Name == "B"),]
+story1C<-story1[which(story1$School.Name == "C"),]
+story1D<-story1[which(story1$School.Name == "D"),]
+story1E<-story1[which(story1$School.Name == "E"),]
+
+par(mfrow = c(3,2))
+
+StudentSumsA <-colSums(story1A[3:7])
+StudentSumsA
+barplot(StudentSumsA, main = "School A", col = "skyblue")
+
+StudentSumsB<-colSums(story1B[3:7])
+StudentSumsB
+barplot(StudentSumsB, main = "School B", col = "lightyellow")
+
+StudentSumsC<-colSums(story1C[3:7])
+StudentSumsC
+barplot(StudentSumsC, main = "School C", col = "lightgreen")
+
+StudentSumsD<-colSums(story1D[3:7])
+StudentSumsD
+barplot(StudentSumsD, main = "School D", col = "lightpink")
+
+StudentSumsE<-colSums(story1E[3:7])
+StudentSumsE
+barplot(StudentSumsE, main = "School E", col = "brown")
+
+barplot(story1B$Complete, names.arg =c(1:12),ylim=c(0,30), main = "Students Completed by Section")
+
+
