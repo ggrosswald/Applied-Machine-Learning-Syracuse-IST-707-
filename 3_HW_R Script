@@ -1,0 +1,129 @@
+---
+title: "Gavin Grosswald_HW3"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+date: "2024-02-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Required Libraries 
+```{r}
+#install.packages("plyr")
+library(plyr)
+#install.packages("dplyr")
+library(dplyr)
+#install.packages("arules")
+library(arules)
+#install.packages("ggplot2")
+library(ggplot2)
+#install.packages("arulesViz")
+library(arulesViz)
+```
+
+# Read in Bank Data Set
+```{r}
+bank <- read.csv("C:\\Users\\gsgro\\OneDrive\\Desktop\\Syr_MSBA\\Term 3\\Machine Learning\\bankdata_csv_all.csv"
+                 , na.string = c(""))
+```
+
+# Evaluate the Data Set
+```{r}
+dim(bank)
+str(bank)
+colSums(is.na(bank))
+summary(bank$age)
+summary(bank$income)
+```
+
+# Plot the Data Set
+```{r}
+ageHist <- bank %>%
+  ggplot(aes(age)) +
+  geom_histogram(bins = 6, fill="tan", col="black")
+ageHist
+
+incomeHist <- bank %>%
+  ggplot(aes(income)) +
+  geom_histogram(fill="lightyellow", col="black", bins = 8)
+incomeHist
+```
+
+# Cleaning and Prep
+```{r}
+# Remove ID Column
+#bank <- bank[,-1]
+
+# Convert Children to Ordinal Factor
+bank$children <- ordered(bank$children)
+
+# Convert char Features to Factors
+bank$sex <- factor(bank$sex)
+bank$region <- factor(bank$region)
+bank$married <- factor(bank$married)
+bank$car <- factor(bank$car)
+bank$save_act <- factor(bank$save_act)
+bank$current_act <- factor(bank$current_act)
+bank$mortgage <- factor(bank$mortgage)
+bank$pep <- factor(bank$pep)
+
+# Change Yes to [variable name = Yes]
+bank$married=dplyr::recode(bank$married, YES="married=YES", NO="married=NO")
+bank$car=dplyr::recode(bank$car, YES="car=YES", NO="car=NO")
+bank$save_act=dplyr::recode(bank$save_act, YES="save_act=YES", NO="save_act=NO")
+bank$current_act=dplyr::recode(bank$current_act, YES="current_act=YES", NO="current_act=NO")
+bank$mortgage=dplyr::recode(bank$mortgage, YES="mortgage=YES", NO="mortgage=NO")
+bank$pep=dplyr::recode(bank$pep, YES="pep=YES", NO="pep=NO")
+
+# Discretize Age and Income
+bank$age <- cut(bank$age, breaks = c(0,20,30,40,50,60,100)
+                , labels = c("teens", "twenties", "thirties", "forties", "fifties", "sixties")
+                , right = FALSE)
+table(bank$age)
+
+bank$income <- cut(bank$income, breaks = c(0,15000,25000,35000,45000,100000)
+                , labels = c("0-14999", "15,000-24,999", "25,000-34,999", "35,000-44999", "45,000+")
+                , right = FALSE)
+table(bank$income)
+
+str(bank)
+```
+# Bar Plot
+```{r}
+par(mfrow = c(3,4))
+barplot(table(bank$age), col = "steelblue", main = "age", las = 2)
+barplot(table(bank$sex), col = "indianred", main = "sex", las = 2)
+barplot(table(bank$region), col = "darkseagreen", main = "region", las = 2)
+barplot(table(bank$income), col = "slategray", main = "income", las = 2)
+barplot(table(bank$married), col = "mediumvioletred", main = "married", las = 2)
+barplot(table(bank$children), col = "mediumpurple", main = "children", las = 2)
+barplot(table(bank$car), col = "darkcyan", main = "car", las = 2)
+barplot(table(bank$save_act), col = "lightsalmon", main = "sace_acct", las = 2)
+barplot(table(bank$current_act), col = "mediumspringgreen", main = "current_acct", las = 2)
+barplot(table(bank$mortgage), col = "royalblue", main = "mortgage", las = 2)
+barplot(table(bank$pep), col = "sandybrown", main = "pep", las = 2)
+```
+
+
+# Frequency Plot
+```{r}
+tid <- as.character(bank[["id"]])
+bank$id <- NULL
+transactions <- as(bank, "transactions")
+transactionInfo(transactions)[["transactionID"]] <- tid
+
+itemFrequencyPlot(transactions, topN=10, type="absolute", col = "lightblue")
+```
+
+# Apriori and Rules
+```{r}
+myrules <- apriori(transactions, parameter = list(supp = 0.02, conf = 0.9, minlen = 3))
+myrules <- sort(myrules, decreasing = TRUE, by="lift")
+inspect(myrules[1:10])
+
+plot(myrules[1:20], method = "graph", shading = "confidence")
+```
