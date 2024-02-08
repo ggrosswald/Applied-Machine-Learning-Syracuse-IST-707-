@@ -1,0 +1,178 @@
+---
+title: "Gavin Grosswald_HW4"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+```{r}
+library(wordcloud)
+library(tm)
+library(slam)
+library(quanteda)
+library(SnowballC)
+library(arules)
+library(proxy)
+library(cluster)
+library(stringi)
+library(Matrix)
+library(tidyverse)
+library(plyr)
+library(ggplot2)
+library(factoextra)
+library(mclust)
+library(dplyr)
+library(stats)
+library(ggfortify)
+```
+
+# Read data
+```{r}
+FedPapers <- read.csv("C:\\Users\\gsgro\\OneDrive\\Desktop\\Syr_MSBA\\Term 3\\Machine Learning\\Week 4\\HW 4\\FedPaperDataset.csv"
+                      , na.strings = c(""))
+```
+
+# Evaluate the dataset
+```{r}
+dim(FedPapers)
+str(FedPapers)
+colSums(is.na(FedPapers))
+summary(FedPapers)
+colnames(FedPapers)
+```
+
+# Remove author name column
+```{r}
+FedPapers1 <- FedPapers[,3:72]
+```
+
+# Find optimal number of clusters using WSS
+```{r}
+wssplot <- function(data, nc = 15, seed = 1234)
+{
+  wss <- (nrow(data)-1)*sum(apply(data, 2, var))
+  for (i in 2:nc) {
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers = i)$withiness)}
+  plot(1:nc, wss, type = "b"
+       , xlab = "Number of Clusters"
+       , ylab = "Within Groups Sum of Squares")
+}
+
+wssplot(FedPapers1)
+```
+
+# kMeans model and visulaization
+```{r}
+KM_1 = kmeans(FedPapers1, 1)
+KM_2 = kmeans(FedPapers1, 2)
+KM_3 = kmeans(FedPapers1, 3)
+KM_4 = kmeans(FedPapers1, 4)
+KM_5 = kmeans(FedPapers1, 5)
+KM_6 = kmeans(FedPapers1, 6)
+KM_7 = kmeans(FedPapers1, 7)
+
+# Cluster plot - no overlapping means successful cluster analysis
+autoplot(KM_1, FedPapers1, frame = TRUE) + theme(panel.background = element_blank())
+autoplot(KM_2, FedPapers1, frame = TRUE) + theme(panel.background = element_blank())
+autoplot(KM_3, FedPapers1, frame = TRUE) + theme(panel.background = element_blank())
+autoplot(KM_4, FedPapers1, frame = TRUE) + theme(panel.background = element_blank())
+autoplot(KM_5, FedPapers1, frame = TRUE) + theme(panel.background = element_blank())
+autoplot(KM_6, FedPapers1, frame = TRUE) + theme(panel.background = element_blank())
+
+# Clusplot
+clusplot(FedPapers1, KM_1$cluster, color = TRUE, shade = TRUE,
+         labels = 0, lines = 0)
+clusplot(FedPapers1, KM_2$cluster, color = TRUE, shade = TRUE,
+         labels = 0, lines = 0)
+clusplot(FedPapers1, KM_3$cluster, color = TRUE, shade = TRUE,
+         labels = 0, lines = 0)
+clusplot(FedPapers1, KM_4$cluster, color = TRUE, shade = TRUE,
+         labels = 0, lines = 0)
+clusplot(FedPapers1, KM_5$cluster, color = TRUE, shade = TRUE,
+         labels = 0, lines = 0)
+clusplot(FedPapers1, KM_6$cluster, color = TRUE, shade = TRUE,
+         labels = 0, lines = 0)
+
+# Cluster centers
+KM_1$centers
+KM_2$centers
+KM_3$centers
+KM_4$centers
+KM_5$centers
+KM_6$centers
+
+# Bar plot k=2
+FedPapers_clusterDF2 <- data.frame(FedPapers, KM_2$cluster)
+FedPapers_clusterDF2$KM_2.cluster <- as.factor(KM_2$cluster)
+
+ggplot(data = FedPapers_clusterDF2, aes(x = author, fill = KM_2.cluster)) + 
+  geom_bar(stat="count") + 
+  labs(title = "K = 2") + 
+  theme(plot.title = element_text(hjust=0.5)
+        , text=element_text(size=15)
+        , panel.background = element_rect(fill = "white"))
+
+# Bar plot k=3
+FedPapers_clusterDF3 <- data.frame(FedPapers, KM_3$cluster)
+FedPapers_clusterDF3$KM_3.cluster <- as.factor(KM_3$cluster)
+
+ggplot(data = FedPapers_clusterDF3, aes(x = author, fill = KM_3.cluster)) + 
+  geom_bar(stat="count") + 
+  labs(title = "K = 3") + 
+  theme(plot.title = element_text(hjust=0.5)
+        , text=element_text(size=15)
+        , panel.background = element_rect(fill = "white"))
+
+# Bar plot k=4
+FedPapers_clusterDF4 <- data.frame(FedPapers, KM_4$cluster)
+FedPapers_clusterDF4$KM_4.cluster <- as.factor(KM_4$cluster)
+
+ggplot(data = FedPapers_clusterDF4, aes(x = author, fill = KM_4.cluster)) + 
+  geom_bar(stat="count") + 
+  labs(title = "K = 4") + 
+  theme(plot.title = element_text(hjust=0.5)
+        , text=element_text(size=15)
+        , panel.background = element_rect(fill = "white"))
+
+```
+
+# Hierachical Clustering Algortihms (HAC)
+```{r}
+distance1 <- dist(FedPapers1, method = "euclidean")
+#distance2 <- dist(FedPapers1, method = "maximum")
+distance3 <- dist(FedPapers1, method = "manhattan")
+#distance4 <- dist(FedPapers1, method = "canberra")
+#distance5 <- dist(FedPapers1, method = "binary")
+distance6 <- dist(FedPapers1, method = "minkowski", p = 2)
+
+HAC <- hclust(distance1, method="complete")
+plot(HAC, cex=0.6, hang=-1)
+rect.hclust(HAC, k =2, border=2:5)
+
+#HAC <- hclust(distance2, method="complete")
+#plot(HAC, cex=0.6, hang=-1)
+#rect.hclust(HAC, k =6, border=2:5)
+
+HAC <- hclust(distance3, method="complete")
+plot(HAC, cex=0.6, hang=-1)
+rect.hclust(HAC, k =3, border=2:5)
+
+#HAC <- hclust(distance4, method="complete")
+#plot(HAC, cex=0.6, hang=-1)
+#rect.hclust(HAC, k =6, border=2:5)
+
+#HAC <- hclust(distance5, method="complete")
+#plot(HAC, cex=0.6, hang=-1)
+#rect.hclust(HAC, k =6, border=2:5)
+
+HAC <- hclust(distance6, method="complete")
+plot(HAC, cex=0.6, hang=-1)
+rect.hclust(HAC, k =4, border=2:5)
+```
+
+
